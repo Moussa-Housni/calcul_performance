@@ -1,0 +1,77 @@
+{% extends "gestion_notes/base.html" %}
+
+{% block title %}Gestion des niveaux{% endblock %}
+
+{% block content %}
+    <section class="grid" style="margin-top: 18px;">
+        <article class="card" style="padding: 18px 22px;">
+            <div class="actions" style="justify-content: center;">
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_departements' %}">Departements</a>
+                <a class="btn" href="{% url 'gestion_notes:liste_niveaux' %}">Niveaux</a>
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_specialites' %}">Specialites</a>
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_classes' %}">Classes</a>
+            </div>
+        </article>
+    </section>
+
+    <section class="grid two">
+        <article class="card">
+            <div class="section-head">
+                <div>
+                    <h2>Ajouter un niveau</h2>
+                    <p class="muted">Exemples : L1, L2, L3, M1, M2.</p>
+                </div>
+            </div>
+            <form method="post" class="form-stack">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="field">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {{ field.errors }}
+                    </div>
+                {% endfor %}
+                {% if form.non_field_errors %}
+                    {{ form.non_field_errors }}
+                {% endif %}
+                <button type="submit" class="btn">Enregistrer le niveau</button>
+            </form>
+        </article>
+
+        <article class="card">
+            <div class="section-head">
+                <div>
+                    <h2>Liste des niveaux</h2>
+                    <p class="muted">Chaque niveau peut etre reutilise dans plusieurs classes.</p>
+                </div>
+            </div>
+            {% if niveaux %}
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Niveau</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for niveau in niveaux %}
+                                <tr>
+                                    <td>{{ niveau.nom }}</td>
+                                    <td>
+                                        <div class="actions">
+                                            <a class="btn btn-secondary" href="{% url 'gestion_notes:modifier_niveau' niveau.pk %}">Modifier</a>
+                                            <a class="btn btn-danger" href="{% url 'gestion_notes:supprimer_niveau' niveau.pk %}">Supprimer</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty">Aucun niveau n'est encore enregistre.</div>
+            {% endif %}
+        </article>
+    </section>
+{% endblock %}

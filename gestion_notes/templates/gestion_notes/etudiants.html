@@ -1,0 +1,175 @@
+{% extends "gestion_notes/base.html" %}
+
+{% block title %}Gestion des etudiants{% endblock %}
+
+{% block content %}
+    <section class="grid" style="margin-top: 18px;">
+        <article class="card" style="padding: 18px 22px;">
+            <div class="actions" style="justify-content: center;">
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_classes' %}">Classes</a>
+                <a class="btn" href="{% url 'gestion_notes:liste_etudiants' %}">Etudiants</a>
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_matieres' %}">Matieres</a>
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_notes' %}">Notes</a>
+            </div>
+        </article>
+    </section>
+
+    <section class="grid">
+        <article
+            class="card"
+            id="ajout-etudiant"
+            {% if not form.errors and not form.non_field_errors %}hidden{% endif %}
+        >
+            <div class="section-head">
+                <div>
+                    <h2>Ajouter un etudiant</h2>
+                    <p class="muted">Chaque etudiant appartient maintenant a une classe, par exemple L1 Informatique ou L1 Reseaux.</p>
+                </div>
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_notes' %}">Saisir des notes</a>
+            </div>
+            {% if peut_creer_etudiant %}
+                <form method="post" class="form-stack">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="field">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <p class="field-help">{{ field.help_text }}</p>
+                            {% endif %}
+                            {{ field.errors }}
+                        </div>
+                    {% endfor %}
+                    {% if form.non_field_errors %}
+                        {{ form.non_field_errors }}
+                    {% endif %}
+                    <button type="submit" class="btn">Enregistrer l'etudiant</button>
+                </form>
+            {% else %}
+                <div class="empty">
+                    Cree d'abord au moins une classe avant d'ajouter un etudiant.
+                </div>
+            {% endif %}
+        </article>
+
+        <article class="card" id="liste-etudiants">
+            <div class="section-head">
+                <div>
+                    <h2>Liste des etudiants</h2>
+                    <p class="muted">Tous les etudiants enregistres apparaissent ici avec leur classe et leur statut, 10 par page.</p>
+                </div>
+                <div class="actions">
+                    <button
+                        type="button"
+                        class="btn"
+                        id="toggle-etudiant-form"
+                        aria-expanded="{% if form.errors or form.non_field_errors %}true{% else %}false{% endif %}"
+                        aria-controls="ajout-etudiant"
+                    >
+                        {% if form.errors or form.non_field_errors %}Masquer le formulaire{% else %}Ajouter un etudiant{% endif %}
+                    </button>
+                    <a class="btn btn-secondary" href="{% url 'gestion_notes:page_resultats' %}">Voir les resultats</a>
+                </div>
+            </div>
+            {% if etudiants %}
+                <div class="table-wrap premium">
+                    <table class="table-premium">
+                        <thead>
+                            <tr>
+                                <th>Matricule</th>
+                                <th>Nom complet</th>
+                                <th>Classe</th>
+                                <th>Departement</th>
+                                <th>Niveau</th>
+                                <th>Specialite</th>
+                                <th>Moyenne</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for etudiant in etudiants %}
+                                <tr>
+                                    <td>{{ etudiant.matricule }}</td>
+                                    <td>{{ etudiant.nom }} {{ etudiant.prenom }}</td>
+                                    <td>{{ etudiant.classe.nom }}</td>
+                                    <td>{{ etudiant.departement.nom }}</td>
+                                    <td>{{ etudiant.niveau.nom }}</td>
+                                    <td>{{ etudiant.specialite.nom }}</td>
+                                    <td>
+                                        {% if etudiant.a_des_notes %}
+                                            <span class="score-chip {% if etudiant.moyenne >= 10 %}score-chip-good{% else %}score-chip-bad{% endif %}">
+                                                {{ etudiant.moyenne }}/20
+                                            </span>
+                                        {% else %}
+                                            <span class="score-chip score-chip-info">Aucune note</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if etudiant.statut == "Admis" %}
+                                            <span class="badge badge-ok">{{ etudiant.statut }}</span>
+                                        {% elif etudiant.statut == "Non admis" %}
+                                            <span class="badge badge-ko">{{ etudiant.statut }}</span>
+                                        {% else %}
+                                            <span class="badge badge-neutral">{{ etudiant.statut }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="action-cell">
+                                        <div class="actions action-stack">
+                                            <a class="btn btn-secondary" href="{% url 'gestion_notes:detail_etudiant' etudiant.pk %}">Voir</a>
+                                            <a class="btn btn-secondary" href="{% url 'gestion_notes:modifier_etudiant' etudiant.pk %}">Modifier</a>
+                                            <a class="btn btn-danger" href="{% url 'gestion_notes:supprimer_etudiant' etudiant.pk %}">Supprimer</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if etudiants.paginator.num_pages > 1 %}
+                    <div class="actions" style="justify-content: space-between; margin-top: 18px;">
+                        <span class="muted">Page {{ etudiants.number }} sur {{ etudiants.paginator.num_pages }}</span>
+                        <div class="actions">
+                            {% if etudiants.has_previous %}
+                                <a class="btn btn-secondary" href="?page={{ etudiants.previous_page_number }}#liste-etudiants">Precedent</a>
+                            {% endif %}
+                            {% if etudiants.has_next %}
+                                <a class="btn btn-secondary" href="?page={{ etudiants.next_page_number }}#liste-etudiants">Suivant</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="empty">Aucun etudiant n'est encore enregistre.</div>
+            {% endif %}
+        </article>
+    </section>
+
+    <script>
+        (function () {
+            const toggleButton = document.getElementById("toggle-etudiant-form");
+            const formPanel = document.getElementById("ajout-etudiant");
+
+            if (!toggleButton || !formPanel) {
+                return;
+            }
+
+            function syncLabel() {
+                const isOpen = !formPanel.hidden;
+                toggleButton.textContent = isOpen ? "Masquer le formulaire" : "Ajouter un etudiant";
+                toggleButton.setAttribute("aria-expanded", isOpen ? "true" : "false");
+            }
+
+            syncLabel();
+
+            toggleButton.addEventListener("click", function () {
+                formPanel.hidden = !formPanel.hidden;
+                syncLabel();
+
+                if (!formPanel.hidden) {
+                    formPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+            });
+        }());
+    </script>
+{% endblock %}

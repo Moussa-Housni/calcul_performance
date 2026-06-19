@@ -1,0 +1,147 @@
+{% extends "gestion_notes/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+    <section class="grid">
+        <article class="card" style="max-width: 760px;">
+            <div class="section-head">
+                <div>
+                    <h2>{{ title }}</h2>
+                    <p class="muted">{{ description }}</p>
+                </div>
+            </div>
+            <div class="info-strip" style="margin-top: 0; margin-bottom: 18px;">
+                <span class="info-chip"><small>Verification</small>Relis les informations avant d'enregistrer les modifications.</span>
+                <span class="info-chip"><small>Retour</small>Utilise Annuler si tu veux quitter sans toucher aux donnees.</span>
+            </div>
+            <form method="post" class="form-stack">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="field">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <p class="field-help">{{ field.help_text }}</p>
+                        {% endif %}
+                        {{ field.errors }}
+                    </div>
+                {% endfor %}
+                {% if form.non_field_errors %}
+                    {{ form.non_field_errors }}
+                {% endif %}
+                <div class="stack-actions">
+                    <button type="submit" class="btn">{{ submit_label }}</button>
+                    {% if cancel_kwargs %}
+                        <a class="btn btn-secondary" href="{% url cancel_url pk=cancel_kwargs.pk %}">Annuler</a>
+                    {% else %}
+                        <a class="btn btn-secondary" href="{% url cancel_url %}">Annuler</a>
+                    {% endif %}
+                </div>
+            </form>
+        </article>
+    </section>
+
+    {% if specialites_data and form.departement and form.specialite %}
+        {{ specialites_data|json_script:"specialites-data-edit" }}
+        <script>
+            (function () {
+                const departementSelect = document.getElementById("id_departement");
+                const specialiteSelect = document.getElementById("id_specialite");
+                const specialitesNode = document.getElementById("specialites-data-edit");
+
+                if (!departementSelect || !specialiteSelect || !specialitesNode) {
+                    return;
+                }
+
+                const specialites = JSON.parse(specialitesNode.textContent);
+
+                function renderSpecialites(selectedValue) {
+                    const departementId = departementSelect.value;
+                    const filteredSpecialites = departementId
+                        ? specialites.filter((specialite) => String(specialite.departement_id) === departementId)
+                        : [];
+
+                    specialiteSelect.innerHTML = "";
+
+                    const placeholder = document.createElement("option");
+                    placeholder.value = "";
+                    placeholder.textContent = departementId
+                        ? "Choisis une specialite"
+                        : "Choisis d'abord un departement";
+                    specialiteSelect.appendChild(placeholder);
+
+                    filteredSpecialites.forEach((specialite) => {
+                        const option = document.createElement("option");
+                        option.value = specialite.id;
+                        option.textContent = specialite.nom;
+                        if (String(specialite.id) === String(selectedValue)) {
+                            option.selected = true;
+                        }
+                        specialiteSelect.appendChild(option);
+                    });
+
+                    if (!filteredSpecialites.some((specialite) => String(specialite.id) === String(selectedValue))) {
+                        specialiteSelect.value = "";
+                    }
+                }
+
+                renderSpecialites(specialiteSelect.value);
+                departementSelect.addEventListener("change", function () {
+                    renderSpecialites("");
+                });
+            }());
+        </script>
+    {% endif %}
+
+    {% if etudiants_matieres_data and form.etudiant and form.matiere %}
+        {{ etudiants_matieres_data|json_script:"etudiants-matieres-data-edit" }}
+        <script>
+            (function () {
+                const etudiantSelect = document.getElementById("id_etudiant");
+                const matiereSelect = document.getElementById("id_matiere");
+                const dataNode = document.getElementById("etudiants-matieres-data-edit");
+
+                if (!etudiantSelect || !matiereSelect || !dataNode) {
+                    return;
+                }
+
+                const etudiants = JSON.parse(dataNode.textContent);
+
+                function renderMatieres(selectedValue) {
+                    const etudiantId = etudiantSelect.value;
+                    const etudiant = etudiants.find((item) => String(item.id) === etudiantId);
+                    const matieres = etudiant ? etudiant.matieres : [];
+
+                    matiereSelect.innerHTML = "";
+
+                    const placeholder = document.createElement("option");
+                    placeholder.value = "";
+                    placeholder.textContent = etudiantId
+                        ? "Choisis une matiere"
+                        : "Choisis d'abord un etudiant";
+                    matiereSelect.appendChild(placeholder);
+
+                    matieres.forEach((matiere) => {
+                        const option = document.createElement("option");
+                        option.value = matiere.id;
+                        option.textContent = matiere.nom;
+                        if (String(matiere.id) === String(selectedValue)) {
+                            option.selected = true;
+                        }
+                        matiereSelect.appendChild(option);
+                    });
+
+                    if (!matieres.some((matiere) => String(matiere.id) === String(selectedValue))) {
+                        matiereSelect.value = "";
+                    }
+                }
+
+                renderMatieres(matiereSelect.value);
+                etudiantSelect.addEventListener("change", function () {
+                    renderMatieres("");
+                });
+            }());
+        </script>
+    {% endif %}
+{% endblock %}

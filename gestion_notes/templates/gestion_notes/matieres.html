@@ -1,0 +1,155 @@
+{% extends "gestion_notes/base.html" %}
+
+{% block title %}Gestion des matieres{% endblock %}
+
+{% block content %}
+    <section class="grid" style="margin-top: 18px;">
+        <article class="card" style="padding: 18px 22px;">
+            <div class="actions" style="justify-content: center;">
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_classes' %}">Classes</a>
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_etudiants' %}">Etudiants</a>
+                <a class="btn" href="{% url 'gestion_notes:liste_matieres' %}">Matieres</a>
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_notes' %}">Notes</a>
+            </div>
+        </article>
+    </section>
+
+    <section class="grid">
+        <article
+            class="card"
+            id="ajout-matiere"
+            {% if not form.errors and not form.non_field_errors %}hidden{% endif %}
+        >
+            <div class="section-head">
+                <div>
+                    <h2>Ajouter une matiere</h2>
+                    <p class="muted">Chaque matiere appartient maintenant a une classe precise.</p>
+                </div>
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_classes' %}">Voir les classes</a>
+            </div>
+            {% if peut_creer_matiere %}
+                <form method="post" class="form-stack">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="field">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <p class="field-help">{{ field.help_text }}</p>
+                            {% endif %}
+                            {{ field.errors }}
+                        </div>
+                    {% endfor %}
+                    {% if form.non_field_errors %}
+                        {{ form.non_field_errors }}
+                    {% endif %}
+                    <button type="submit" class="btn">Enregistrer la matiere</button>
+                </form>
+            {% else %}
+                <div class="empty">
+                    Cree d'abord au moins une classe avant d'ajouter une matiere.
+                </div>
+            {% endif %}
+        </article>
+
+        <article class="card" id="liste-matieres">
+            <div class="section-head">
+                <div>
+                    <h2>Liste des matieres</h2>
+                    <p class="muted">Toutes les matieres enregistrees apparaissent ici avec leur classe et leur coefficient, 10 par page.</p>
+                </div>
+                <div class="actions">
+                    <button
+                        type="button"
+                        class="btn"
+                        id="toggle-matiere-form"
+                        aria-expanded="{% if form.errors or form.non_field_errors %}true{% else %}false{% endif %}"
+                        aria-controls="ajout-matiere"
+                    >
+                        {% if form.errors or form.non_field_errors %}Masquer le formulaire{% else %}Ajouter une matiere{% endif %}
+                    </button>
+                    <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_notes' %}">Passer aux notes</a>
+                </div>
+            </div>
+            <p class="table-summary">Verifie ici que chaque classe possede bien son propre programme avant de commencer la saisie des notes.</p>
+            {% if matieres %}
+                <div class="table-wrap premium">
+                    <table class="table-premium">
+                        <thead>
+                            <tr>
+                                <th>Classe</th>
+                                <th>Departement</th>
+                                <th>Niveau</th>
+                                <th>Specialite</th>
+                                <th>Matiere</th>
+                                <th>Coefficient</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for matiere in matieres %}
+                                <tr>
+                                    <td>{{ matiere.classe.nom }}</td>
+                                    <td>{{ matiere.classe.departement.nom }}</td>
+                                    <td>{{ matiere.classe.niveau.nom }}</td>
+                                    <td>{{ matiere.classe.specialite.nom }}</td>
+                                    <td>{{ matiere.nom }}</td>
+                                    <td><span class="score-chip score-chip-info">{{ matiere.coefficient }}</span></td>
+                                    <td class="action-cell">
+                                        <div class="actions action-stack">
+                                            <a class="btn btn-secondary" href="{% url 'gestion_notes:modifier_matiere' matiere.pk %}">Modifier</a>
+                                            <a class="btn btn-danger" href="{% url 'gestion_notes:supprimer_matiere' matiere.pk %}">Supprimer</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if matieres.paginator.num_pages > 1 %}
+                    <div class="actions" style="justify-content: space-between; margin-top: 18px;">
+                        <span class="muted">Page {{ matieres.number }} sur {{ matieres.paginator.num_pages }}</span>
+                        <div class="actions">
+                            {% if matieres.has_previous %}
+                                <a class="btn btn-secondary" href="?page={{ matieres.previous_page_number }}#liste-matieres">Precedent</a>
+                            {% endif %}
+                            {% if matieres.has_next %}
+                                <a class="btn btn-secondary" href="?page={{ matieres.next_page_number }}#liste-matieres">Suivant</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="empty">Aucune matiere n'est encore enregistree.</div>
+            {% endif %}
+        </article>
+    </section>
+
+    <script>
+        (function () {
+            const toggleButton = document.getElementById("toggle-matiere-form");
+            const formPanel = document.getElementById("ajout-matiere");
+
+            if (!toggleButton || !formPanel) {
+                return;
+            }
+
+            function syncLabel() {
+                const isOpen = !formPanel.hidden;
+                toggleButton.textContent = isOpen ? "Masquer le formulaire" : "Ajouter une matiere";
+                toggleButton.setAttribute("aria-expanded", isOpen ? "true" : "false");
+            }
+
+            syncLabel();
+
+            toggleButton.addEventListener("click", function () {
+                formPanel.hidden = !formPanel.hidden;
+                syncLabel();
+
+                if (!formPanel.hidden) {
+                    formPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+            });
+        }());
+    </script>
+{% endblock %}

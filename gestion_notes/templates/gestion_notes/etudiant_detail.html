@@ -1,0 +1,104 @@
+{% extends "gestion_notes/base.html" %}
+
+{% block title %}Fiche etudiant{% endblock %}
+
+{% block content %}
+    <section class="grid cards">
+        <article class="card">
+            <p class="muted">Matricule</p>
+            <p class="metric">{{ etudiant.matricule }}</p>
+        </article>
+        <article class="card">
+            <p class="muted">Niveau</p>
+            <p class="metric">{{ etudiant.niveau.nom }}</p>
+        </article>
+        <article class="card">
+            <p class="muted">Classe</p>
+            <p class="metric" style="font-size: 1.5rem;">{{ etudiant.classe.nom }}</p>
+        </article>
+        <article class="card">
+            <p class="muted">Departement</p>
+            <p class="metric" style="font-size: 1.5rem;">{{ etudiant.departement.nom }}</p>
+        </article>
+        <article class="card">
+            <p class="muted">Etudiant</p>
+            <p class="metric" style="font-size: 1.5rem;">{{ etudiant.nom }} {{ etudiant.prenom }}</p>
+        </article>
+        <article class="card">
+            <p class="muted">Specialite</p>
+            <p class="metric" style="font-size: 1.5rem;">{{ etudiant.specialite.nom }}</p>
+        </article>
+        <article class="card">
+            <p class="muted">Moyenne ponderee</p>
+            <p class="metric">
+                {% if etudiant.a_des_notes %}
+                    {{ etudiant.moyenne }}/20
+                {% else %}
+                    -
+                {% endif %}
+            </p>
+        </article>
+        <article class="card">
+            <p class="muted">Statut</p>
+            <p class="metric" style="font-size: 1.5rem;">{{ etudiant.statut }}</p>
+        </article>
+    </section>
+
+    <section class="grid">
+        <article class="card">
+            <div class="section-head">
+                <div>
+                    <h2>Notes de l'etudiant</h2>
+                    <p class="muted">Detail du programme de la classe. Si une note manque, elle compte comme 0 dans le calcul.</p>
+                </div>
+                <div class="actions">
+                    <a class="btn btn-secondary" href="{% url 'gestion_notes:modifier_etudiant' etudiant.pk %}">Modifier l'etudiant</a>
+                    <a class="btn btn-danger" href="{% url 'gestion_notes:supprimer_etudiant' etudiant.pk %}">Supprimer l'etudiant</a>
+                    <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_notes' %}">Ajouter une note</a>
+                </div>
+            </div>
+            {% if programme_notes %}
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Matiere</th>
+                                <th>Coefficient</th>
+                                <th>Note</th>
+                                <th>Calcul</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ligne in programme_notes %}
+                                <tr>
+                                    <td>{{ ligne.matiere.nom }}</td>
+                                    <td>{{ ligne.matiere.coefficient }}</td>
+                                    <td>
+                                        {{ ligne.valeur|floatformat:2 }}/20
+                                        {% if ligne.est_absente %}
+                                            <span class="badge badge-neutral" style="margin-left: 8px;">Absente = 0</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ ligne.points|floatformat:2 }}</td>
+                                    <td>
+                                        {% if ligne.note_obj %}
+                                            <div class="actions">
+                                                <a class="btn btn-secondary" href="{% url 'gestion_notes:modifier_note' ligne.note_obj.pk %}">Modifier</a>
+                                                <a class="btn btn-danger" href="{% url 'gestion_notes:supprimer_note' ligne.note_obj.pk %}">Supprimer</a>
+                                            </div>
+                                        {% else %}
+                                            <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_notes' %}">Saisir la note</a>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty">Aucune matiere n'est encore affectee a la classe de cet etudiant.</div>
+            {% endif %}
+        </article>
+    </section>
+{% endblock %}

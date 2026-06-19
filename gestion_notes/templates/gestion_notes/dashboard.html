@@ -1,0 +1,359 @@
+{% extends "gestion_notes/base.html" %}
+
+{% block title %}Tableau de bord{% endblock %}
+
+{% block content %}
+    <section class="grid">
+        <article class="card dashboard-header">
+            <div class="dashboard-header-top">
+                <div class="dashboard-header-copy">
+                    <h2>Tableau de bord administrateur</h2>
+                    <p>Tu peux suivre les indicateurs de performance, verifier rapidement l'etat de la saisie et acceder aux actions les plus utiles sans quitter cette page.</p>
+                </div>
+                <div class="dashboard-actions">
+                    <a class="btn" href="{% url 'gestion_notes:liste_etudiants' %}#ajout-etudiant">
+                        <span class="button-icon"><svg class="icon-svg" aria-hidden="true"><use href="#icon-plus-circle"></use></svg></span>
+                        Ajouter un etudiant
+                    </a>
+                    <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_notes' %}">
+                        <span class="button-icon"><svg class="icon-svg" aria-hidden="true"><use href="#icon-note"></use></svg></span>
+                        Saisir une note
+                    </a>
+                </div>
+            </div>
+            <div class="dashboard-badge-row">
+                <div class="dashboard-badge">
+                    <div>
+                        <strong><span class="dashboard-badge-icon"><svg class="icon-svg" aria-hidden="true"><use href="#icon-user-circle"></use></svg></span>Admin connecte</strong>
+                        <small>{{ user.username }}</small>
+                    </div>
+                </div>
+                <div class="dashboard-badge">
+                    <div>
+                        <strong><span class="dashboard-badge-icon"><svg class="icon-svg" aria-hidden="true"><use href="#icon-calendar"></use></svg></span>Annee academique</strong>
+                        <small>{{ annee_academique }}</small>
+                    </div>
+                </div>
+                <div class="dashboard-badge">
+                    <div>
+                        <strong><span class="dashboard-badge-icon"><svg class="icon-svg" aria-hidden="true"><use href="#icon-school"></use></svg></span>Classes actives</strong>
+                        <small>{{ total_formations }} classe{{ total_formations|pluralize }}</small>
+                    </div>
+                </div>
+                <div class="dashboard-badge">
+                    <div>
+                        <strong><span class="dashboard-badge-icon"><svg class="icon-svg" aria-hidden="true"><use href="#icon-books"></use></svg></span>Matieres configurees</strong>
+                        <small>{{ total_matieres }} matiere{{ total_matieres|pluralize }}</small>
+                    </div>
+                </div>
+            </div>
+        </article>
+    </section>
+
+    <section class="grid cards">
+        <article class="card metric-card {% if total_etudiants %}metric-card-good{% else %}metric-card-bad{% endif %}">
+            <p class="card-topline section-title"><span class="title-icon title-icon-good"><svg class="icon-svg" aria-hidden="true"><use href="#icon-users"></use></svg></span> Population</p>
+            <p class="muted">Nombre d'etudiants</p>
+            <p class="metric">{{ total_etudiants }}</p>
+            <p class="metric-note">Etudiants actuellement inscrits dans les classes configurees.</p>
+        </article>
+
+        <article class="card metric-card {% if moyenne_generale_disponible and moyenne_generale >= 10 %}metric-card-good{% else %}metric-card-bad{% endif %}">
+            <p class="card-topline section-title">
+                <span class="title-icon {% if moyenne_generale_disponible and moyenne_generale >= 10 %}title-icon-good{% else %}title-icon-bad{% endif %}"><svg class="icon-svg" aria-hidden="true"><use href="#icon-chart-line"></use></svg></span>
+                Performance globale
+            </p>
+            <p class="muted">Moyenne generale</p>
+            {% if moyenne_generale_disponible %}
+                <p class="metric">{{ moyenne_generale }}/20</p>
+                <p class="metric-note">Calculee sur les etudiants qui ont deja une moyenne disponible.</p>
+            {% else %}
+                <p class="metric">-</p>
+                <p class="metric-note">Ajoute des matieres puis des notes pour obtenir la moyenne generale.</p>
+            {% endif %}
+        </article>
+
+        <article class="card metric-card {% if taux_admission_disponible and taux_admission >= 50 %}metric-card-good{% else %}metric-card-bad{% endif %}">
+            <p class="card-topline section-title">
+                <span class="title-icon {% if taux_admission_disponible and taux_admission >= 50 %}title-icon-good{% else %}title-icon-bad{% endif %}"><svg class="icon-svg" aria-hidden="true"><use href="#icon-check-circle"></use></svg></span>
+                Decision
+            </p>
+            <p class="muted">Taux d'admission</p>
+            {% if taux_admission_disponible %}
+                <p class="metric">{{ taux_admission }}%</p>
+                <p class="metric-note">{{ total_admis }} admis sur {{ total_etudiants_classes }} etudiants classes.</p>
+            {% else %}
+                <p class="metric">-</p>
+                <p class="metric-note">Le taux apparaitra des que des moyennes seront calculables.</p>
+            {% endif %}
+        </article>
+
+        <article class="card metric-card {% if meilleure_classe and meilleure_classe.moyenne >= 10 %}metric-card-good{% else %}metric-card-bad{% endif %}">
+            <p class="card-topline section-title">
+                <span class="title-icon {% if meilleure_classe and meilleure_classe.moyenne >= 10 %}title-icon-good{% else %}title-icon-bad{% endif %}"><svg class="icon-svg" aria-hidden="true"><use href="#icon-trophy"></use></svg></span>
+                Classement
+            </p>
+            <p class="muted">Meilleure classe</p>
+            {% if meilleure_classe %}
+                <p class="metric">{{ meilleure_classe.moyenne }}/20</p>
+                <p class="metric-note">{{ meilleure_classe.classe.nom }} | {{ meilleure_classe.admis }} admis</p>
+            {% else %}
+                <p class="metric">-</p>
+                <p class="metric-note">Aucune classe n'a encore une moyenne exploitable.</p>
+            {% endif %}
+        </article>
+
+        <article class="card metric-card {% if meilleur_etudiant and meilleur_etudiant.moyenne >= 10 %}metric-card-good{% else %}metric-card-bad{% endif %}">
+            <p class="card-topline section-title">
+                <span class="title-icon {% if meilleur_etudiant and meilleur_etudiant.moyenne >= 10 %}title-icon-good{% else %}title-icon-bad{% endif %}"><svg class="icon-svg" aria-hidden="true"><use href="#icon-target"></use></svg></span>
+                Suivi
+            </p>
+            <p class="muted">Meilleur etudiant</p>
+            {% if meilleur_etudiant %}
+                <p class="metric">{{ meilleur_etudiant.moyenne }}/20</p>
+                <p class="metric-note">{{ meilleur_etudiant.nom }} {{ meilleur_etudiant.prenom }} | {{ meilleur_etudiant.classe.nom }}</p>
+            {% else %}
+                <p class="metric">-</p>
+                <p class="metric-note">Ajoute d'abord des notes pour voir le meilleur etudiant.</p>
+            {% endif %}
+        </article>
+
+    </section>
+
+    <section class="insight-grid" style="margin-top: 28px;">
+        <article class="card chart-card">
+            <div class="section-head">
+                <div>
+                    <h2 class="section-title"><span class="title-icon"><svg class="icon-svg" aria-hidden="true"><use href="#icon-chart-bars"></use></svg></span> Graphique des moyennes par classe</h2>
+                    <p class="muted">Un graphique simple pour voir en un coup d'oeil les classes les plus performantes.</p>
+                </div>
+            </div>
+            {% if graphe_moyennes_classes %}
+                <div class="chart-rows">
+                    {% for stat in graphe_moyennes_classes %}
+                        <div class="chart-row">
+                            <div class="chart-head">
+                                <strong>{{ stat.classe.nom }}</strong>
+                                <span class="chart-value">{{ stat.moyenne }}/20</span>
+                            </div>
+                            <div class="chart-track">
+                                <span class="chart-bar {% if stat.moyenne < 10 %}bad{% endif %}" style="width: {{ stat.moyenne_barre }}%;"></span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty">Le graphique apparaitra des que des classes auront des moyennes calculables.</div>
+            {% endif %}
+        </article>
+
+        <article class="card chart-card">
+            <div class="section-head">
+                <div>
+                    <h2 class="section-title"><span class="title-icon"><svg class="icon-svg" aria-hidden="true"><use href="#icon-chart-line"></use></svg></span> Graphique du taux d'admission par departement</h2>
+                    <p class="muted">Chaque barre montre la part d'etudiants admis parmi les etudiants deja classes.</p>
+                </div>
+            </div>
+            {% if graphe_admission_departements %}
+                <div class="chart-rows">
+                    {% for stat in graphe_admission_departements %}
+                        <div class="chart-row">
+                            <div class="chart-head">
+                                <strong>{{ stat.departement.nom }}</strong>
+                                <span class="chart-value">{{ stat.taux_admission }}%</span>
+                            </div>
+                            <div class="chart-track">
+                                <span class="chart-bar {% if stat.taux_admission < 50 %}bad{% endif %}" style="width: {{ stat.taux_barre }}%;"></span>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty">Le taux d'admission par departement sera visible une fois les premieres notes saisies.</div>
+            {% endif %}
+        </article>
+    </section>
+
+    <section class="grid two">
+        <article class="card">
+            <div class="section-head">
+                <div>
+                    <h2 class="section-title"><span class="title-icon"><svg class="icon-svg" aria-hidden="true"><use href="#icon-school"></use></svg></span> Statistiques par classe</h2>
+                    <p class="muted">Effectif, moyenne, admis et non admis pour chaque classe.</p>
+                </div>
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_classes' %}">Voir les classes</a>
+            </div>
+            {% if stats_classes %}
+                <div class="stat-list">
+                    {% for stat in stats_classes %}
+                        <article class="stat-row">
+                            <div class="stat-head">
+                                <div>
+                                    <strong>{{ stat.classe.nom }}</strong>
+                                    <p class="muted" style="margin: 6px 0 0;">
+                                        {{ stat.classe.departement.nom }} | {{ stat.classe.niveau.nom }} | {{ stat.classe.specialite.nom }}
+                                    </p>
+                                </div>
+                                <span>
+                                    {% if stat.moyenne is not None %}
+                                        {{ stat.moyenne }}/20
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="stat-meta">
+                                <span>Effectif : {{ stat.effectif }}</span>
+                                <span>Admis : {{ stat.admis }}</span>
+                                <span>Non admis : {{ stat.non_admis }}</span>
+                                <span>Sans note : {{ stat.sans_note }}</span>
+                                <span>
+                                    Taux :
+                                    {% if stat.taux_admission is not None %}
+                                        {{ stat.taux_admission }}%
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="progress">
+                                <span class="progress-bar {% if stat.moyenne is not None and stat.moyenne < 10 %}bad{% endif %}" style="width: {{ stat.moyenne_barre }}%;"></span>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty">Aucune statistique par classe n'est encore disponible.</div>
+            {% endif %}
+        </article>
+
+        <article class="card">
+            <div class="section-head">
+                <div>
+                    <h2 class="section-title"><span class="title-icon"><svg class="icon-svg" aria-hidden="true"><use href="#icon-building"></use></svg></span> Statistiques par departement</h2>
+                    <p class="muted">Vision regroupee pour comparer les departements de l'etablissement.</p>
+                </div>
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_departements' %}">Voir les departements</a>
+            </div>
+            {% if stats_departements %}
+                <div class="stat-list">
+                    {% for stat in stats_departements %}
+                        <article class="stat-row">
+                            <div class="stat-head">
+                                <div>
+                                    <strong>{{ stat.departement.nom }}</strong>
+                                    <p class="muted" style="margin: 6px 0 0;">
+                                        {{ stat.classes_total }} classe{{ stat.classes_total|pluralize }} suivie{{ stat.classes_total|pluralize }}
+                                    </p>
+                                </div>
+                                <span>
+                                    {% if stat.moyenne is not None %}
+                                        {{ stat.moyenne }}/20
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="stat-meta">
+                                <span>Effectif : {{ stat.effectif }}</span>
+                                <span>Admis : {{ stat.admis }}</span>
+                                <span>Non admis : {{ stat.non_admis }}</span>
+                                <span>Sans note : {{ stat.sans_note }}</span>
+                                <span>
+                                    Taux :
+                                    {% if stat.taux_admission is not None %}
+                                        {{ stat.taux_admission }}%
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="progress">
+                                <span class="progress-bar {% if stat.taux_admission is not None and stat.taux_admission < 50 %}bad{% endif %}" style="width: {{ stat.taux_barre }}%;"></span>
+                            </div>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty">Aucune statistique par departement n'est encore disponible.</div>
+            {% endif %}
+        </article>
+    </section>
+
+    <section class="grid">
+        <article class="card">
+            <div class="section-head">
+                <div>
+                    <h2 class="section-title"><span class="title-icon"><svg class="icon-svg" aria-hidden="true"><use href="#icon-graduation"></use></svg></span> Resultats des etudiants</h2>
+                    <p class="muted">Vue rapide des moyennes et statuts.</p>
+                </div>
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_etudiants' %}">Gerer les etudiants</a>
+            </div>
+            <p class="table-summary">Vue synthese avec moyenne, statut et acces rapide a la fiche detaillee.</p>
+            {% if etudiants %}
+                <div class="table-wrap premium">
+                    <table class="table-premium">
+                        <thead>
+                            <tr>
+                                <th>Etudiant</th>
+                                <th>Classe</th>
+                                <th>Parcours</th>
+                                <th>Moyenne</th>
+                                <th>Statut</th>
+                                <th>Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for etudiant in etudiants %}
+                                <tr>
+                                    <td>
+                                        <div class="cell-stack">
+                                            <span class="cell-main">{{ etudiant.nom }} {{ etudiant.prenom }}</span>
+                                            <span class="cell-sub mono-code">{{ etudiant.matricule }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="cell-stack">
+                                            <span class="cell-main">{{ etudiant.classe.nom }}</span>
+                                            <span class="cell-sub">{{ etudiant.departement.nom }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="mini-tags">
+                                            <span class="mini-tag">{{ etudiant.niveau.nom }}</span>
+                                            <span class="mini-tag mini-tag-soft">{{ etudiant.specialite.nom }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if etudiant.a_des_notes %}
+                                            <span class="score-chip {% if etudiant.moyenne >= 10 %}score-chip-good{% else %}score-chip-bad{% endif %}">
+                                                {{ etudiant.moyenne }}/20
+                                            </span>
+                                        {% else %}
+                                            <span class="score-chip score-chip-info">Aucune note</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if etudiant.statut == "Admis" %}
+                                            <span class="badge badge-ok">{{ etudiant.statut }}</span>
+                                        {% elif etudiant.statut == "Non admis" %}
+                                            <span class="badge badge-ko">{{ etudiant.statut }}</span>
+                                        {% else %}
+                                            <span class="badge badge-neutral">{{ etudiant.statut }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="action-cell">
+                                        <a class="btn btn-secondary" href="{% url 'gestion_notes:detail_etudiant' etudiant.pk %}">Voir</a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="empty">Aucun etudiant n'a encore ete ajoute.</div>
+            {% endif %}
+        </article>
+
+    </section>
+{% endblock %}

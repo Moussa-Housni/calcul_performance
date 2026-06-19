@@ -1,0 +1,190 @@
+{% extends "gestion_notes/base.html" %}
+
+{% block title %}Gestion des classes{% endblock %}
+
+{% block content %}
+    <section class="grid" style="margin-top: 18px;">
+        <article class="card" style="padding: 18px 22px;">
+            <div class="actions" style="justify-content: center;">
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_departements' %}">Departements</a>
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_niveaux' %}">Niveaux</a>
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_specialites' %}">Specialites</a>
+                <a class="btn" href="{% url 'gestion_notes:liste_classes' %}">Classes</a>
+            </div>
+        </article>
+    </section>
+
+    <section class="grid">
+        <article
+            class="card"
+            id="ajout-classe"
+            {% if not form.errors and not form.non_field_errors %}hidden{% endif %}
+        >
+            <div class="section-head">
+                <div>
+                    <h2>Ajouter une classe</h2>
+                    <p class="muted">Une classe represente une combinaison de niveau et de specialite, par exemple L1 Informatique.</p>
+                </div>
+            </div>
+            {% if peut_creer_classe %}
+                <form method="post" class="form-stack">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="field">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {{ field.errors }}
+                        </div>
+                    {% endfor %}
+                    {% if form.non_field_errors %}
+                        {{ form.non_field_errors }}
+                    {% endif %}
+                    <button type="submit" class="btn">Enregistrer la classe</button>
+                </form>
+            {% else %}
+                <div class="empty">
+                    Cree d'abord au moins un niveau et une specialite avant d'ajouter une classe.
+                </div>
+            {% endif %}
+        </article>
+
+        <article class="card" id="liste-classes">
+            <div class="section-head">
+                <div>
+                    <h2>Liste des classes</h2>
+                    <p class="muted">Toutes les classes enregistrees apparaissent ici, 10 par page.</p>
+                </div>
+                <div class="actions">
+                    <button
+                        type="button"
+                        class="btn"
+                        id="toggle-classe-form"
+                        aria-expanded="{% if form.errors or form.non_field_errors %}true{% else %}false{% endif %}"
+                        aria-controls="ajout-classe"
+                    >
+                        {% if form.errors or form.non_field_errors %}Masquer le formulaire{% else %}Ajouter une classe{% endif %}
+                    </button>
+                </div>
+            </div>
+            {% if classes %}
+                <div class="table-wrap premium">
+                    <table class="table-premium">
+                        <thead>
+                            <tr>
+                                <th>Classe</th>
+                                <th>Departement</th>
+                                <th>Niveau</th>
+                                <th>Specialite</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for classe in classes %}
+                                <tr>
+                                    <td>{{ classe.nom }}</td>
+                                    <td>{{ classe.departement.nom }}</td>
+                                    <td>{{ classe.niveau.nom }}</td>
+                                    <td>{{ classe.specialite.nom }}</td>
+                                    <td class="action-cell">
+                                        <div class="actions action-stack">
+                                            <a class="btn btn-secondary" href="{% url 'gestion_notes:modifier_classe' classe.pk %}">Modifier</a>
+                                            <a class="btn btn-danger" href="{% url 'gestion_notes:supprimer_classe' classe.pk %}">Supprimer</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if classes.paginator.num_pages > 1 %}
+                    <div class="actions" style="justify-content: space-between; margin-top: 18px;">
+                        <span class="muted">Page {{ classes.number }} sur {{ classes.paginator.num_pages }}</span>
+                        <div class="actions">
+                            {% if classes.has_previous %}
+                                <a class="btn btn-secondary" href="?page={{ classes.previous_page_number }}#liste-classes">Precedent</a>
+                            {% endif %}
+                            {% if classes.has_next %}
+                                <a class="btn btn-secondary" href="?page={{ classes.next_page_number }}#liste-classes">Suivant</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="empty">Aucune classe n'est encore enregistree.</div>
+            {% endif %}
+        </article>
+    </section>
+
+    {% if specialites_data %}
+        {{ specialites_data|json_script:"specialites-data-classes" }}
+        <script>
+            (function () {
+                const departementSelect = document.getElementById("id_departement");
+                const specialiteSelect = document.getElementById("id_specialite");
+                const specialitesNode = document.getElementById("specialites-data-classes");
+                const toggleButton = document.getElementById("toggle-classe-form");
+                const formPanel = document.getElementById("ajout-classe");
+
+                if (toggleButton && formPanel) {
+                    function syncLabel() {
+                        const isOpen = !formPanel.hidden;
+                        toggleButton.textContent = isOpen ? "Masquer le formulaire" : "Ajouter une classe";
+                        toggleButton.setAttribute("aria-expanded", isOpen ? "true" : "false");
+                    }
+
+                    syncLabel();
+
+                    toggleButton.addEventListener("click", function () {
+                        formPanel.hidden = !formPanel.hidden;
+                        syncLabel();
+
+                        if (!formPanel.hidden) {
+                            formPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }
+                    });
+                }
+
+                if (!departementSelect || !specialiteSelect || !specialitesNode) {
+                    return;
+                }
+
+                const specialites = JSON.parse(specialitesNode.textContent);
+
+                function renderSpecialites(selectedValue) {
+                    const departementId = departementSelect.value;
+                    const filteredSpecialites = departementId
+                        ? specialites.filter((specialite) => String(specialite.departement_id) === departementId)
+                        : [];
+
+                    specialiteSelect.innerHTML = "";
+
+                    const placeholder = document.createElement("option");
+                    placeholder.value = "";
+                    placeholder.textContent = departementId
+                        ? "Choisis une specialite"
+                        : "Choisis d'abord un departement";
+                    specialiteSelect.appendChild(placeholder);
+
+                    filteredSpecialites.forEach((specialite) => {
+                        const option = document.createElement("option");
+                        option.value = specialite.id;
+                        option.textContent = specialite.nom;
+                        if (String(specialite.id) === String(selectedValue)) {
+                            option.selected = true;
+                        }
+                        specialiteSelect.appendChild(option);
+                    });
+
+                    if (!filteredSpecialites.some((specialite) => String(specialite.id) === String(selectedValue))) {
+                        specialiteSelect.value = "";
+                    }
+                }
+
+                renderSpecialites(specialiteSelect.value);
+                departementSelect.addEventListener("change", function () {
+                    renderSpecialites("");
+                });
+            }());
+        </script>
+    {% endif %}
+{% endblock %}

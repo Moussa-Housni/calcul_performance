@@ -1,0 +1,26 @@
+{% extends "gestion_notes/base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+    <section class="grid">
+        <article class="card" style="max-width: 760px;">
+            <div class="section-head">
+                <div>
+                    <h2>{{ title }}</h2>
+                    <p class="muted">{{ description }}</p>
+                </div>
+            </div>
+            <p><strong>Element concerne :</strong> {{ object_label }}</p>
+            <form method="post" class="stack-actions">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Confirmer la suppression</button>
+                {% if cancel_kwargs %}
+                    <a class="btn btn-secondary" href="{% url cancel_url pk=cancel_kwargs.pk %}">Annuler</a>
+                {% else %}
+                    <a class="btn btn-secondary" href="{% url cancel_url %}">Annuler</a>
+                {% endif %}
+            </form>
+        </article>
+    </section>
+{% endblock %}

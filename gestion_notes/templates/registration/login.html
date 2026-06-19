@@ -1,0 +1,76 @@
+{% extends "gestion_notes/base.html" %}
+
+{% block title %}Connexion administrateur{% endblock %}
+
+{% block hero %}
+{% endblock %}
+
+{% block content %}
+    <style>
+        .auth-simple-wrap {
+            min-height: calc(100vh - 140px);
+            display: grid;
+            place-items: center;
+            margin-top: 8px;
+        }
+
+        .auth-simple-card {
+            width: 100%;
+            max-width: 470px;
+            padding: 30px;
+            border-radius: 20px;
+            background: linear-gradient(180deg, #ffffff 0%, #fbf7ef 100%);
+            border: 1px solid #dfd2b5;
+            box-shadow: var(--shadow);
+        }
+
+        .auth-simple-head {
+            margin-bottom: 18px;
+        }
+
+        .auth-simple-head h2 {
+            margin: 0 0 6px;
+            color: var(--brand-dark);
+            font-size: 1.5rem;
+            line-height: 1.15;
+        }
+
+        .auth-simple-head p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        @media (max-width: 560px) {
+            .auth-simple-card {
+                padding: 22px;
+            }
+        }
+    </style>
+
+    <section class="auth-simple-wrap">
+        <article class="auth-simple-card">
+            <div class="auth-simple-head">
+                <h2>Connexion administrateur</h2>
+                <p>Accede a la plateforme avec ton compte administrateur.</p>
+            </div>
+
+            <form method="post" class="form-stack">
+                {% csrf_token %}
+                {% for field in form %}
+                    <div class="field">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {{ field.errors }}
+                    </div>
+                {% endfor %}
+                {% if form.non_field_errors %}
+                    {{ form.non_field_errors }}
+                {% endif %}
+                {% if next %}
+                    <input type="hidden" name="next" value="{{ next }}">
+                {% endif %}
+                <button type="submit" class="btn">Se connecter</button>
+            </form>
+        </article>
+    </section>
+{% endblock %}

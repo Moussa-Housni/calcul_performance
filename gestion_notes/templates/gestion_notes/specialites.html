@@ -1,0 +1,141 @@
+{% extends "gestion_notes/base.html" %}
+
+{% block title %}Gestion des specialites{% endblock %}
+
+{% block content %}
+    <section class="grid" style="margin-top: 18px;">
+        <article class="card" style="padding: 18px 22px;">
+            <div class="actions" style="justify-content: center;">
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_departements' %}">Departements</a>
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_niveaux' %}">Niveaux</a>
+                <a class="btn" href="{% url 'gestion_notes:liste_specialites' %}">Specialites</a>
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_classes' %}">Classes</a>
+            </div>
+        </article>
+    </section>
+
+    <section class="grid">
+        <article
+            class="card"
+            id="ajout-specialite"
+            {% if not form.errors and not form.non_field_errors %}hidden{% endif %}
+        >
+            <div class="section-head">
+                <div>
+                    <h2>Ajouter une specialite</h2>
+                    <p class="muted">Exemples : Reseaux, Securite, Developpement.</p>
+                </div>
+            </div>
+            {% if peut_creer_specialite %}
+                <form method="post" class="form-stack">
+                    {% csrf_token %}
+                    {% for field in form %}
+                        <div class="field">
+                            <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                            {{ field }}
+                            {{ field.errors }}
+                        </div>
+                    {% endfor %}
+                    {% if form.non_field_errors %}
+                        {{ form.non_field_errors }}
+                    {% endif %}
+                    <button type="submit" class="btn">Enregistrer la specialite</button>
+                </form>
+            {% else %}
+                <div class="empty">
+                    Cree d'abord au moins un departement avant d'ajouter une specialite.
+                </div>
+            {% endif %}
+        </article>
+
+        <article class="card" id="liste-specialites">
+            <div class="section-head">
+                <div>
+                    <h2>Liste des specialites</h2>
+                    <p class="muted">Toutes les specialites enregistrees apparaissent ici, 10 par page.</p>
+                </div>
+                <div class="actions">
+                    <button
+                        type="button"
+                        class="btn"
+                        id="toggle-specialite-form"
+                        aria-expanded="{% if form.errors or form.non_field_errors %}true{% else %}false{% endif %}"
+                        aria-controls="ajout-specialite"
+                    >
+                        {% if form.errors or form.non_field_errors %}Masquer le formulaire{% else %}Ajouter une specialite{% endif %}
+                    </button>
+                </div>
+            </div>
+            {% if specialites %}
+                <div class="table-wrap premium">
+                    <table class="table-premium">
+                        <thead>
+                            <tr>
+                                <th>Departement</th>
+                                <th>Specialite</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for specialite in specialites %}
+                                <tr>
+                                    <td>{{ specialite.departement.nom }}</td>
+                                    <td>{{ specialite.nom }}</td>
+                                    <td class="action-cell">
+                                        <div class="actions action-stack">
+                                            <a class="btn btn-secondary" href="{% url 'gestion_notes:modifier_specialite' specialite.pk %}">Modifier</a>
+                                            <a class="btn btn-danger" href="{% url 'gestion_notes:supprimer_specialite' specialite.pk %}">Supprimer</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if specialites.paginator.num_pages > 1 %}
+                    <div class="actions" style="justify-content: space-between; margin-top: 18px;">
+                        <span class="muted">Page {{ specialites.number }} sur {{ specialites.paginator.num_pages }}</span>
+                        <div class="actions">
+                            {% if specialites.has_previous %}
+                                <a class="btn btn-secondary" href="?page={{ specialites.previous_page_number }}#liste-specialites">Precedent</a>
+                            {% endif %}
+                            {% if specialites.has_next %}
+                                <a class="btn btn-secondary" href="?page={{ specialites.next_page_number }}#liste-specialites">Suivant</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endif %}
+            {% else %}
+                <div class="empty">Aucune specialite n'est encore enregistree.</div>
+            {% endif %}
+        </article>
+    </section>
+
+    <script>
+        (function () {
+            const toggleButton = document.getElementById("toggle-specialite-form");
+            const formPanel = document.getElementById("ajout-specialite");
+
+            if (!toggleButton || !formPanel) {
+                return;
+            }
+
+            function syncLabel() {
+                const isOpen = !formPanel.hidden;
+                toggleButton.textContent = isOpen ? "Masquer le formulaire" : "Ajouter une specialite";
+                toggleButton.setAttribute("aria-expanded", isOpen ? "true" : "false");
+            }
+
+            syncLabel();
+
+            toggleButton.addEventListener("click", function () {
+                formPanel.hidden = !formPanel.hidden;
+                syncLabel();
+
+                if (!formPanel.hidden) {
+                    formPanel.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+            });
+        }());
+    </script>
+{% endblock %}

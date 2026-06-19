@@ -1,0 +1,26 @@
+{% extends "gestion_notes/base.html" %}
+
+{% block title %}Acces refuse{% endblock %}
+
+{% block content %}
+    <section class="grid">
+        <article class="card" style="max-width: 720px;">
+            <div class="section-head">
+                <div>
+                    <h2>Accès refusé</h2>
+                    <p class="muted">
+                        Ce compte est connecté, mais il ne dispose pas des droits administrateur
+                        necessaires pour gérer l'application.
+                    </p>
+                </div>
+            </div>
+            <div class="stack-actions">
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:login' %}">Se connécter avec un autre compte</a>
+                <form method="post" action="{% url 'gestion_notes:logout' %}" class="nav-form">
+                    {% csrf_token %}
+                    <button type="submit" class="btn">Se déconnecter</button>
+                </form>
+            </div>
+        </article>
+    </section>
+{% endblock %}

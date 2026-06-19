@@ -1,0 +1,341 @@
+{% extends "gestion_notes/base.html" %}
+
+{% block title %}Gestion des notes{% endblock %}
+
+{% block content %}
+    <section class="grid" style="margin-top: 18px;">
+        <article class="card" style="padding: 18px 22px;">
+            <div class="actions" style="justify-content: center;">
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_classes' %}">Classes</a>
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_etudiants' %}">Etudiants</a>
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_matieres' %}">Matieres</a>
+                <a class="btn" href="{% url 'gestion_notes:liste_notes' %}">Notes</a>
+            </div>
+        </article>
+    </section>
+
+    <section class="grid">
+        <article class="card">
+            <div class="section-head">
+                <div>
+                    <h2>Saisir les notes d'un etudiant</h2>
+                    <p class="muted">Choisis une classe, ouvre la fiche d'un etudiant, puis saisis toutes ses notes d'un coup.</p>
+                </div>
+                <a class="btn btn-secondary" href="{% url 'gestion_notes:page_resultats' %}">Voir les resultats</a>
+            </div>
+
+            <form method="get" class="toolbar" style="margin-bottom: 20px;" id="notes-selector-form">
+                <div class="field">
+                    <label for="id_departement_selector">Departement</label>
+                    <select id="id_departement_selector" name="departement" class="form-select">
+                        <option value="">Tous les departements</option>
+                        {% for departement in departements %}
+                            <option value="{{ departement.id }}" {% if departement_selectionne == departement.id|stringformat:"s" %}selected{% endif %}>
+                                {{ departement.nom }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="id_niveau_selector">Niveau</label>
+                    <select id="id_niveau_selector" name="niveau" class="form-select">
+                        <option value="">Tous les niveaux</option>
+                        {% for niveau in niveaux %}
+                            <option value="{{ niveau.id }}" {% if niveau_selectionne == niveau.id|stringformat:"s" %}selected{% endif %}>
+                                {{ niveau.nom }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="id_specialite_selector">Specialite</label>
+                    <select id="id_specialite_selector" name="specialite" class="form-select">
+                        <option value="">Toutes les specialites</option>
+                        {% for specialite in specialites %}
+                            <option value="{{ specialite.id }}" {% if specialite_selectionnee == specialite.id|stringformat:"s" %}selected{% endif %}>
+                                {{ specialite.nom }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="id_classe_selector">Classe</label>
+                    <select id="id_classe_selector" name="classe" class="form-select">
+                        <option value="">Choisis une classe</option>
+                        {% for classe in classes %}
+                            <option value="{{ classe.id }}" {% if classe_selectionnee == classe.id|stringformat:"s" %}selected{% endif %}>
+                                {{ classe.nom }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="id_etudiant_selector">Etudiant</label>
+                    <select
+                        id="id_etudiant_selector"
+                        name="etudiant"
+                        class="form-select"
+                        {% if not etudiants_classe %}disabled{% endif %}
+                    >
+                        <option value="">
+                            {% if classe_selectionnee %}
+                                {% if etudiants_classe %}
+                                    Choisis un etudiant
+                                {% else %}
+                                    Aucun etudiant dans cette classe
+                                {% endif %}
+                            {% else %}
+                                Choisis d'abord une classe
+                            {% endif %}
+                        </option>
+                        {% for etudiant in etudiants_classe %}
+                            <option value="{{ etudiant.id }}" {% if etudiant_selectionne == etudiant.id|stringformat:"s" %}selected{% endif %}>
+                                {{ etudiant.matricule }} - {{ etudiant.nom }} {{ etudiant.prenom }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn">Charger la fiche</button>
+                {% if classe_selectionnee or etudiant_selectionne %}
+                    <a class="btn btn-secondary" href="{% url 'gestion_notes:liste_notes' %}">Reinitialiser</a>
+                {% endif %}
+            </form>
+
+            {% if classe_selectionnee_obj and not etudiants_classe %}
+                <div class="empty">Cette classe ne contient encore aucun etudiant. Ajoute d'abord les etudiants avant de saisir les notes.</div>
+            {% elif etudiant_selectionne_obj and notes_form %}
+                <div class="info-strip" style="margin-top: 0; margin-bottom: 18px;">
+                    <span class="info-chip"><small>Classe</small>{{ classe_selectionnee_obj.nom }}</span>
+                    <span class="info-chip"><small>Etudiant</small>{{ etudiant_selectionne_obj.matricule }} - {{ etudiant_selectionne_obj.nom }} {{ etudiant_selectionne_obj.prenom }}</span>
+                    <span class="info-chip"><small>Progression</small>{{ position_etudiant }} / {{ total_etudiants_classe }} dans la classe</span>
+                </div>
+
+                {% if note_form_rows %}
+                    <form method="post" class="form-stack">
+                        {% csrf_token %}
+                        <input type="hidden" name="departement_selectionne" value="{{ departement_selectionne }}">
+                        <input type="hidden" name="niveau_selectionne" value="{{ niveau_selectionne }}">
+                        <input type="hidden" name="specialite_selectionnee" value="{{ specialite_selectionnee }}">
+                        <input type="hidden" name="classe_selectionnee" value="{{ classe_selectionnee_obj.id }}">
+                        <input type="hidden" name="etudiant_selectionne" value="{{ etudiant_selectionne_obj.id }}">
+
+                        {% if notes_form.non_field_errors %}
+                            {{ notes_form.non_field_errors }}
+                        {% endif %}
+
+                        <div class="table-wrap premium">
+                            <table class="table-premium">
+                                <thead>
+                                    <tr>
+                                        <th>Matiere</th>
+                                        <th>Coefficient</th>
+                                        <th>Note / 20</th>
+                                        <th>Etat</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in note_form_rows %}
+                                        <tr>
+                                            <td>
+                                                <strong>{{ row.matiere.nom }}</strong>
+                                            </td>
+                                            <td>
+                                                <span class="score-chip score-chip-info">{{ row.matiere.coefficient }}</span>
+                                            </td>
+                                            <td>
+                                                {{ row.field }}
+                                                {% if row.field.help_text %}
+                                                    <p class="field-help">{{ row.field.help_text }}</p>
+                                                {% endif %}
+                                                {{ row.field.errors }}
+                                            </td>
+                                            <td>
+                                                {% if row.note_existante %}
+                                                    <span class="badge badge-ok">Deja saisie</span>
+                                                {% else %}
+                                                    <span class="badge badge-neutral">A completer</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="stack-actions">
+                            <button type="submit" class="btn">Enregistrer toutes les notes</button>
+                            {% if etudiant_suivant %}
+                                <button type="submit" class="btn btn-accent" name="action" value="next">
+                                    Enregistrer et passer a {{ etudiant_suivant.nom }} {{ etudiant_suivant.prenom }}
+                                </button>
+                            {% endif %}
+                        </div>
+                    </form>
+                {% else %}
+                    <div class="empty">Aucune matiere n'est encore configuree pour cette classe. Cree d'abord les matieres de la classe avant de saisir les notes.</div>
+                {% endif %}
+            {% else %}
+                <div class="empty">Choisis une classe puis un etudiant pour ouvrir sa fiche de notes complete.</div>
+            {% endif %}
+        </article>
+    </section>
+
+    {% if specialites_data and classes_data and classes_etudiants_data %}
+        {{ specialites_data|json_script:"specialites-data-notes" }}
+        {{ classes_data|json_script:"classes-data-notes" }}
+        {{ classes_etudiants_data|json_script:"classes-etudiants-data-add" }}
+        <script>
+            (function () {
+                const departementSelect = document.getElementById("id_departement_selector");
+                const niveauSelect = document.getElementById("id_niveau_selector");
+                const specialiteSelect = document.getElementById("id_specialite_selector");
+                const classeSelect = document.getElementById("id_classe_selector");
+                const etudiantSelect = document.getElementById("id_etudiant_selector");
+                const specialitesNode = document.getElementById("specialites-data-notes");
+                const classesNode = document.getElementById("classes-data-notes");
+                const dataNode = document.getElementById("classes-etudiants-data-add");
+
+                if (
+                    !departementSelect
+                    || !niveauSelect
+                    || !specialiteSelect
+                    || !classeSelect
+                    || !etudiantSelect
+                    || !specialitesNode
+                    || !classesNode
+                    || !dataNode
+                ) {
+                    return;
+                }
+
+                const specialites = JSON.parse(specialitesNode.textContent);
+                const classesData = JSON.parse(classesNode.textContent);
+                const classesEtudiants = JSON.parse(dataNode.textContent);
+
+                function renderSpecialites(selectedValue) {
+                    const departementId = departementSelect.value;
+                    const filteredSpecialites = departementId
+                        ? specialites.filter((specialite) => String(specialite.departement_id) === departementId)
+                        : specialites;
+
+                    specialiteSelect.innerHTML = "";
+
+                    const placeholder = document.createElement("option");
+                    placeholder.value = "";
+                    placeholder.textContent = "Toutes les specialites";
+                    specialiteSelect.appendChild(placeholder);
+
+                    filteredSpecialites.forEach((specialite) => {
+                        const option = document.createElement("option");
+                        option.value = specialite.id;
+                        option.textContent = specialite.nom;
+                        if (String(specialite.id) === String(selectedValue)) {
+                            option.selected = true;
+                        }
+                        specialiteSelect.appendChild(option);
+                    });
+
+                    if (!filteredSpecialites.some((specialite) => String(specialite.id) === String(selectedValue))) {
+                        specialiteSelect.value = "";
+                    }
+                }
+
+                function renderClasses(selectedValue) {
+                    const departementId = departementSelect.value;
+                    const niveauId = niveauSelect.value;
+                    const specialiteId = specialiteSelect.value;
+                    const filteredClasses = classesData.filter((classe) => {
+                        if (departementId && String(classe.departement_id) !== departementId) {
+                            return false;
+                        }
+                        if (niveauId && String(classe.niveau_id) !== niveauId) {
+                            return false;
+                        }
+                        if (specialiteId && String(classe.specialite_id) !== specialiteId) {
+                            return false;
+                        }
+                        return true;
+                    });
+
+                    classeSelect.innerHTML = "";
+
+                    const placeholder = document.createElement("option");
+                    placeholder.value = "";
+                    placeholder.textContent = "Choisis une classe";
+                    classeSelect.appendChild(placeholder);
+
+                    filteredClasses.forEach((classe) => {
+                        const option = document.createElement("option");
+                        option.value = classe.id;
+                        option.textContent = classe.nom;
+                        if (String(classe.id) === String(selectedValue)) {
+                            option.selected = true;
+                        }
+                        classeSelect.appendChild(option);
+                    });
+
+                    if (!filteredClasses.some((classe) => String(classe.id) === String(selectedValue))) {
+                        classeSelect.value = "";
+                    }
+                }
+
+                function renderEtudiants(selectedValue) {
+                    const classeId = classeSelect.value;
+                    const classe = classesEtudiants.find((item) => String(item.id) === String(classeId));
+                    const etudiants = classe ? classe.etudiants : [];
+
+                    etudiantSelect.innerHTML = "";
+
+                    const placeholder = document.createElement("option");
+                    placeholder.value = "";
+                    if (!classeId) {
+                        placeholder.textContent = "Choisis d'abord une classe";
+                    } else if (!etudiants.length) {
+                        placeholder.textContent = "Aucun etudiant dans cette classe";
+                    } else {
+                        placeholder.textContent = "Choisis un etudiant";
+                    }
+                    etudiantSelect.appendChild(placeholder);
+
+                    let selectedExists = false;
+                    etudiants.forEach((etudiant) => {
+                        const option = document.createElement("option");
+                        option.value = etudiant.id;
+                        option.textContent = etudiant.label;
+                        if (String(etudiant.id) === String(selectedValue)) {
+                            option.selected = true;
+                            selectedExists = true;
+                        }
+                        etudiantSelect.appendChild(option);
+                    });
+
+                    etudiantSelect.disabled = !classeId || !etudiants.length;
+
+                    if (etudiants.length && !selectedExists) {
+                        etudiantSelect.value = String(etudiants[0].id);
+                    }
+                }
+
+                renderSpecialites(specialiteSelect.value);
+                renderClasses(classeSelect.value);
+                renderEtudiants(etudiantSelect.value);
+                departementSelect.addEventListener("change", function () {
+                    renderSpecialites(specialiteSelect.value);
+                    renderClasses(classeSelect.value);
+                    renderEtudiants(etudiantSelect.value);
+                });
+                niveauSelect.addEventListener("change", function () {
+                    renderClasses(classeSelect.value);
+                    renderEtudiants(etudiantSelect.value);
+                });
+                specialiteSelect.addEventListener("change", function () {
+                    renderClasses(classeSelect.value);
+                    renderEtudiants(etudiantSelect.value);
+                });
+                classeSelect.addEventListener("change", function () {
+                    renderEtudiants("");
+                });
+            }());
+        </script>
+    {% endif %}
+{% endblock %}
